@@ -1,0 +1,43 @@
+KEY TAKEAWAYS: graph as data structures --> taking what we learned 
+
+google node.js command line tool npm to find other similar node programs 
+
+step by step
+	1. node.js specs:
+		- set up your constructor function
+		- put a connect fn on the prototype
+	2. connection
+		- make a new one w the connection constructor
+			add value & name props
+	3. check to see if the connection property exists
+		if not:
+		- push it into the array
+		- add it to the conditions obj
+	4. game specs:
+		- game constructor fn
+		- add node fn
+			check if it's already on the object
+			if not create a node
+		- get node fn
+			return the node
+		- connect fn
+			takes three parameters (takes a third one, condition from the game source file)
+			use the getnode func to access the nodes
+	5. player.js
+		how inquirer works: once the choice is selected, it (the choice object) is passed to the callback function as a parameter. the "name" in the question object becomes the object's key and the value in the question obj becomes the question objs value
+		1. build a play function
+			use the node to access the message and then call the next answer back into your function
+			you have to make sure there are no choices left otherwise it will throw an error (see first if statement)
+			a promise is an object that gets data from something that does not exist yet
+			promise resolve is a utlity that lets you create a promise and give it a value - u need to call then to get the value out
+
+they are different files because they are modules -- they are representing different parts of a flowchart
+
+nodes are the circles, connections (referred to as edges) are the lines, the game is the graph
+
+we put conditions in a object so we can ensure we do not have duplicate conditions
+
+we put connections in an array to retain the ordering of the connections
+
+graphs: extends beyond adventure games; social networks, neural networks, streets & directions, all use graphs!
+
