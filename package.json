@@ -1,8 +1,9 @@
 {
-  "name": "adventure",
-  "version": "1.0.0",
-  "description": "",
+  "name": "react-backend",
+  "version": "0.0.0",
+  "private": true,
   "scripts": {
+    "start": "node ./bin/www",
     "test": "./node_modules/mocha/bin/mocha"
   },
   "devDependencies": {
@@ -10,6 +11,14 @@
     "mocha": "^2.2.5"
   },
   "dependencies": {
-    "inquirer": "*"
+    "cookie-parser": "~1.4.3",
+    "debug": "~2.6.9",
+    "express": "~4.16.0",
+    "http-errors": "~1.6.2",
+    "jade": "~1.11.0",
+    "morgan": "~1.9.0",
+    "inquirer": "*",
+    "phaser": "^3.15.1",
+    "react-phaser": "^0.1.6"
   }
 }
