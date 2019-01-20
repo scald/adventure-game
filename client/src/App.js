@@ -7,80 +7,141 @@ import Phaser from 'phaser';
 class App extends Component {
 
   componentDidMount() {
-    var level;
+    var game;
     var cursors;
     var emitter;
     var avatarMain;
     var dude;
-    var dudeAngle;
+    var dudeAttack;
     var stars;
     var score = 0;
     var scoreText;
-    var titleText;
+    var titleText = "";
     var clouds1;
     var clouds2;
-    var gameOver = {status: false, text:"", subText: ""};
-    var mainText;
+    var mainText; 
     var mainSubText;
-    var levelComplete = {status: false, text:"", subText: "", getNextLevel: function(){ return false; }};
+    var level = { previous: 0, current: 1, dead: false, complete: false, text: "", subText: "", getNextLevel: function () { return false; }, startLevel: function () { return false; } };
     var health = 100;
     var healthText;
+    var levelText;
     var music;
     var damageFX;
     var lowHealthFX;
+    var lives = 3;
 
-    levelComplete.getNextLevel = function() {
-      level += 1;
-      //  A new batch of stars to collect
+    level.startLevel = function () {
+      if (lives === 0) {
+        lives = 3;
+      }
+      avatarMain.displayWidth = 48;
+      avatarMain.displayHeight = 48;
+      avatarMain.enableBody(true, 0, 0, true, true);
+      dude.enableBody(true, Phaser.Math.Between(512, 1024), Phaser.Math.Between(0, 768), true, true);
+
+      health = 100;
+      level.dead = false;
+      level.complete = false;
+      level.text = "";
+      level.subText = "";
+
+      // .setVelocity(20, 20);
+      avatarMain.setBounce(1, 0.2);
+      avatarMain.setCollideWorldBounds(true);
+      avatarMain.setAccelerationX(3);
+      // avatarMain.setAccelerationY(-200);
+
+      emitter.active = true;
+      emitter.startFollow(dude);
+
+      //  Player physics properties. Give the little guy a slight bounce.
+      dude.setBounce(0.2);
+      dude.setCollideWorldBounds(true);
+
+      // console.log(stars.children);
       stars.children.iterate(function (child) {
+        //  Give each star a slightly different bounce
+        child.setVelocityY(Phaser.Math.FloatBetween(160, 200));
+        child.setAccelerationX(Phaser.Math.FloatBetween(550, 900));
+        child.setBounceY(Phaser.Math.FloatBetween(0.7, 1.0));
+        child.setCollideWorldBounds(true);
         child.enableBody(true, child.x, 0, true, true);
       });
+
+      // music.play();
+
+    }
+
+    level.getNextLevel = function () {
+      level.current += 1;
+      level.startLevel();
     };
 
-    var collectStar = function(player, star) {
+    var collectStar = function (player, star) {
       star.disableBody(true, true);
 
-      avatarMain.displayWidth *= 1.1;
-      avatarMain.displayHeight *= 1.1;
+      if (stars.countActive(true) <= 10) {
+
+        avatarMain.displayWidth *= 1.1;
+        avatarMain.displayHeight *= 1.1;
+      }
 
       //  Add and update the score
       score += 10;
-      scoreText.setText('Score: ' + score);
+
 
       if (stars.countActive(true) === 0) {
-        dude.disableBody(true, true);
-        levelComplete.status = true;
-        levelComplete.text = "Nicely done."
-        levelComplete.subText = "Press Space";
+        // dude.disableBody(true, true);
+        level.complete = true;
+        level.text = "Nicely done."
+        level.subText = "Press Space";
+        dude.disableBody(true, true); 
+        emitter.active = false;
+        emitter.setAlpha = 0;
       }
     }
 
     function dudeCollision(player, dude) {
-      damageFX.play();
+      if (!level.dead && !level.complete) {
+        damageFX.play();
 
-      avatarMain.setTint(0xff0000);
-      health -= 2;
+        avatarMain.setTint(0xff0000);
+        health -= 2;
 
-      if (health <= 30) {
-        lowHealthFX.play();
+        if (health <= 30) {
+          lowHealthFX.play();
+        }
+        if (health <= 0) {
+          score = 0;
+          lives -= 1;
+          level.dead = true;
+          level.text = "You're dead.";
+          level.subText = "Press Space";
+          avatarMain.disableBody(true, true);
+          emitter.active = false;
+          emitter.setAlpha = 0;
+          dude.disableBody(true, true);
+        
+          stars.children.iterate(function (child) {
+            child.setCollideWorldBounds(false);
+          });
+        }
+
+        if (lives === 0) {
+          level.gameOver = true;
+          level.text = "Better luck next time.";
+          level.subText = "Game Over - Press Space";
+        }
+
+        window.setTimeout(function () { avatarMain.clearTint(); }, 200);
       }
-      if (health <= 0) {
-        gameOver.status = true;
-        gameOver.text = "You're dead.";
-        gameOver.subText = "Press Space";
-        avatarMain.disableBody(true, true);
-
-      }
-      healthText.setText('Health: ' + health);
-      window.setTimeout(function() { avatarMain.clearTint(); }, 200 );
-
     }
-// ##################################################
+    // ##################################################
 
     var preload = function () {
-      this.load.audio('music', [ 'music/a_plus.m4a' ]);
-      this.load.audio('damageFX', [ 'fx/damageFX.m4a' ]);
-      this.load.audio('low_healthFX', [ 'fx/low_healthFX.m4a' ]);
+      this.load.audio('music', ['music/a_plus.m4a']);
+      this.load.audio('damageFX', ['fx/damageFX.m4a']);
+      this.load.audio('low_healthFX', ['fx/low_healthFX.m4a']);
       this.load.image('sky', 'game_background_4/layers/sky.png');
       this.load.image('sky2', 'sky2.png');
       this.load.image('platform', 'platform.png');
@@ -97,12 +158,9 @@ class App extends Component {
       // this.load.image('scarlett', 'scarlett-headphones.png');
     }
 
-// ##################################################
+    // ##################################################
 
     var create = function () {
-
-      level = config.level;
-
       // SOUNDS 🥁
       music = this.sound.add('music');
       damageFX = this.sound.add('damageFX');
@@ -123,103 +181,74 @@ class App extends Component {
       this.add.image(250, 250, 'ground');
 
       // TEXT
-      titleText = this.add.text(30, 30, "Emojiball", { fontSize: '24px', fill: '#000' });
-      scoreText = this.add.text(30, 60, 'Score: ' + score, { fontSize: '24px', fill: '#000' });
-      healthText = this.add.text(800, 30, 'Health: ' + health, { fontSize: '24px', fill: '#000' });
+      titleText = this.add.text(30, 30, "", { fontSize: '24px', fill: '#000' });
+      scoreText = this.add.text(30, 60, '', { fontSize: '24px', fill: '#000' });
+      healthText = this.add.text(30, 90, '', { fontSize: '24px', fill: '#000' });
+      levelText = this.add.text(500, 30, '' + health, { fontSize: '48px', fill: '#000' });
       mainText = this.add.text(30, 300, "", { fontSize: '72px', fill: '#000' });
       mainSubText = this.add.text(35, 400, "", { fontSize: '24px', fill: '#242424' });
 
       avatarMain = this.physics.add.image(0, 0, 'avatar_main');
 
-      // .setVelocity(20, 20);
-      avatarMain.setBounce(1, 0.2);
-      avatarMain.setCollideWorldBounds(true);
-      avatarMain.setAccelerationX(3);
-      // avatarMain.setAccelerationY(-200);
-
       // sparkleavatarMain
       var particles = this.add.particles('star');
       emitter = particles.createEmitter({
-        speed: 200,
+        speed: 100,
         scale: { start: -0.1, end: 1 },
         blendMode: "ADD"
       });
-      emitter.active = true;
-      emitter.startFollow(avatarMain);
 
+      // The dude and its settings
+      dude = this.physics.add.sprite(Phaser.Math.Between(512, 1024), Phaser.Math.Between(0, 768), 'dude');
 
-    // The dude and its settings
-    dude = this.physics.add.sprite(Phaser.Math.Between(512,1024), Phaser.Math.Between(0,768), 'dude');
-
-    //  Player physics properties. Give the little guy a slight bounce.
-    dude.setBounce(0.2);
-    dude.setCollideWorldBounds(true);
-
-    //  Our player animations, turning, walking left and walking right.
-    this.anims.create({
+      //  Our player animations, turning, walking left and walking right.
+      this.anims.create({
         key: 'left',
         frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
         frameRate: 20,
         repeat: -1
-    });
+      });
 
-    this.anims.create({
+      this.anims.create({
         key: 'right',
         frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
         frameRate: 20,
         repeat: -1
-    });
+      });
 
       cursors = this.input.keyboard.createCursorKeys();
 
-      //  Some stars to collect, 12 in total, evenly spaced 70 pixels apart along the x axis
       stars = this.physics.add.group({
-        key: 'star', 
-        repeat: Phaser.Math.Between(5,10),
-        setXY: { x: 100, y: 0, stepX: 80 }
+        key: 'star',
+        repeat: 50,
+        setXY: { x: 0, y: Phaser.Math.Between(100,800), stepX: 18 }
       });
-
-      // console.log(stars.children);
-      stars.children.iterate(function (child) {
-
-        //  Give each star a slightly different bounce
-        child.setVelocityY(Phaser.Math.FloatBetween(160, 200));
-        child.setBounceY(Phaser.Math.FloatBetween(0.7, 1.0));
-        child.setCollideWorldBounds(true);
-      });
-
       this.physics.add.collider(avatarMain, stars, collectStar, null, this);
       this.physics.add.collider(avatarMain, dude, dudeCollision, null, this);
 
-      music.play();
-
+      level.startLevel();
     }
 
-// ##################################################
+    // ##################################################
 
     function update() {
-      if (gameOver.status)
-      {
-        mainText.setText(gameOver.text);
-        mainSubText.setText(gameOver.subText);
-        return;
-      }
+      mainText.setText(level.text);
+      mainSubText.setText(level.subText);
+      titleText.setText('👴🏽 ' + lives);
+      scoreText.setText('🏆 ' + score);
+      healthText.setText('❤️ ' + health);
+      levelText.setText(level.current);
 
-      if (levelComplete.status)
-      {
-        mainText.setText(levelComplete.text);
-        mainSubText.setText(levelComplete.subText);
-        if (cursors.space.isDown) {
-          levelComplete.getNextLevel();
+      if (cursors.space.isDown) {
+        if (level.dead) {
+          level.startLevel();
         }
-      }
 
-      else if (cursors.space.isDown) {
+        if (level.complete) {
+          level.getNextLevel();
+        }
+
         avatarMain.setVelocityY(-530);
-      
-        // emitter.active = true;
-        // emitter.setAlpha = 1;
-
       }
 
       if (cursors.left.isDown) {
@@ -236,15 +265,14 @@ class App extends Component {
       else {
         //
       }
-        
-        dudeAngle = Phaser.Math.RadToDeg(this.physics.moveToObject(dude, avatarMain, 0.9, 1500));
+      dudeAttack = Phaser.Math.RadToDeg(this.physics.moveToObject(dude, avatarMain, 0.9, Phaser.Math.Between(1300, 1500)));
 
-        if ((dudeAngle >= 0 && dudeAngle <= 90) || (dudeAngle <= 0 && dudeAngle > -90)) {
-          dude.anims.play('right', true);
-        } else {
-          dude.anims.play('left', true);
+      if ((dudeAttack >= 0 && dudeAttack <= 90) || (dudeAttack <= 0 && dudeAttack > -90)) {
+        dude.anims.play('right', true);
+      } else {
+        dude.anims.play('left', true);
 
-        }
+      }
     }
 
 
@@ -266,12 +294,11 @@ class App extends Component {
         update: update
       },
       audio: {
-          disableWebAudio: true
-      },
-      level: 1
+        disableWebAudio: true
+      }
     };
 
-    var game = new Phaser.Game(config);
+    game = new Phaser.Game(config);
   }
 
   render() {
