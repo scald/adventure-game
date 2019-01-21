@@ -1,25 +1,26 @@
 import React, { Component } from 'react';
 import './App.css';
 import Phaser from 'phaser';
-
+// import './Emoji.js';
 
 
 class App extends Component {
 
   componentDidMount() {
+
     var game;
     var cursors;
     var emitter;
     var avatarMain;
     var dude;
     var dudeAttack;
-    var stars;
+    var emojis;
     var score = 0;
     var scoreText;
     var titleText = "";
     var clouds1;
     var clouds2;
-    var mainText; 
+    var mainText;
     var mainSubText;
     var level = { previous: 0, current: 1, dead: false, complete: false, text: "", subText: "", getNextLevel: function () { return false; }, startLevel: function () { return false; } };
     var health = 100;
@@ -36,6 +37,9 @@ class App extends Component {
       }
       avatarMain.displayWidth = 48;
       avatarMain.displayHeight = 48;
+      avatarMain.displayWidth = 48;
+      avatarMain.displayHeight = 48;
+
       avatarMain.enableBody(true, 0, 0, true, true);
       dude.enableBody(true, Phaser.Math.Between(512, 1024), Phaser.Math.Between(0, 768), true, true);
 
@@ -58,14 +62,8 @@ class App extends Component {
       dude.setBounce(0.2);
       dude.setCollideWorldBounds(true);
 
-      // console.log(stars.children);
-      stars.children.iterate(function (child) {
-        //  Give each star a slightly different bounce
-        child.setVelocityY(Phaser.Math.FloatBetween(160, 200));
-        child.setAccelerationX(Phaser.Math.FloatBetween(550, 900));
-        child.setBounceY(Phaser.Math.FloatBetween(0.7, 1.0));
-        child.setCollideWorldBounds(true);
-        child.enableBody(true, child.x, 0, true, true);
+      Phaser.Actions.Call(emojis.getChildren(), function (emoji) {
+        emoji.body.onWorldBounds = true;
       });
 
       // music.play();
@@ -77,10 +75,10 @@ class App extends Component {
       level.startLevel();
     };
 
-    var collectStar = function (player, star) {
-      star.disableBody(true, true);
+    var collectStar = function (player, emoji) {
+      emoji.disableBody(true, true);
 
-      if (stars.countActive(true) <= 10) {
+      if (emojis.countActive(true) <= 10) {
 
         avatarMain.displayWidth *= 1.1;
         avatarMain.displayHeight *= 1.1;
@@ -90,14 +88,14 @@ class App extends Component {
       score += 10;
 
 
-      if (stars.countActive(true) === 0) {
+      if (emojis.countActive(true) === 0) {
         // dude.disableBody(true, true);
         level.complete = true;
         level.text = "Nicely done."
         level.subText = "Press Space";
-        dude.disableBody(true, true); 
-        emitter.active = false;
-        emitter.setAlpha = 0;
+        dude.disableBody(true, true);
+        // emitter.active = false;
+        // emitter.setAlpha = 0;
       }
     }
 
@@ -118,13 +116,13 @@ class App extends Component {
           level.text = "You're dead.";
           level.subText = "Press Space";
           avatarMain.disableBody(true, true);
-          emitter.active = false;
-          emitter.setAlpha = 0;
+          // emitter.active = false;
+          // emitter.setAlpha = 0;
           dude.disableBody(true, true);
-        
-          stars.children.iterate(function (child) {
-            child.setCollideWorldBounds(false);
-          });
+
+          // stars.children.iterate(function (child) {
+          //   child.setCollideWorldBounds(false);
+          // });
         }
 
         if (lives === 0) {
@@ -146,16 +144,16 @@ class App extends Component {
       this.load.image('sky2', 'sky2.png');
       this.load.image('platform', 'platform.png');
       // this.load.image('star', 'star.png');
-      this.load.image('ground', 'game_background_4/layers/ground.png');
+      // this.load.image('ground', 'game_background_2/layers/pines.png');
       this.load.image('rocks', 'game_background_4/layers/rocks.png');
+      this.load.image('ground', 'game_background_4/layers/ground.png');
       this.load.image('clouds_1', 'game_background_4/layers/clouds_1.png');
       this.load.image('clouds_2', 'game_background_4/layers/clouds_2.png');
       this.load.image('avatar_main', 'grandpa-emoji-72.png');
       this.load.image('star', 'grandpa-emoji-24.png');
+      this.load.spritesheet('emoji', 'spritesheet.png', { frameWidth: 32, frameHeight: 32 });
 
       this.load.spritesheet('dude', 'dude.png', { frameWidth: 32, frameHeight: 48 });
-
-      // this.load.image('scarlett', 'scarlett-headphones.png');
     }
 
     // ##################################################
@@ -189,7 +187,6 @@ class App extends Component {
       mainSubText = this.add.text(35, 400, "", { fontSize: '24px', fill: '#242424' });
 
       avatarMain = this.physics.add.image(0, 0, 'avatar_main');
-
       // sparkleavatarMain
       var particles = this.add.particles('star');
       emitter = particles.createEmitter({
@@ -218,12 +215,45 @@ class App extends Component {
 
       cursors = this.input.keyboard.createCursorKeys();
 
-      stars = this.physics.add.group({
-        key: 'star',
-        repeat: 50,
-        setXY: { x: 0, y: Phaser.Math.Between(100,800), stepX: 18 }
+      // stars = this.physics.add.group({
+      //   key: 'star',
+      //   repeat: 50,
+      //   setXY: { x: 0, y: Phaser.Math.Between(100,800), stepX: 18 }
+      // });
+
+
+      function onWorldBounds(body) {
+        var emoji = body.gameObject;
+        var frame = emoji.frame.name;
+        var width = emoji.frame.width;
+        var height = emoji.frame.height;
+
+        frame += 20;
+
+
+        emoji.setFrame(frame);
+      }
+
+
+      emojis = this.physics.add.group({
+        key: 'emoji',
+        frameQuantity: 48,
+        bounceX: 1,
+        bounceY: 1,
+        collideWorldBounds: true,
+        velocityX: 180,
+        velocityY: 120,
       });
-      this.physics.add.collider(avatarMain, stars, collectStar, null, this);
+
+      Phaser.Actions.RandomRectangle(emojis.getChildren(), this.cameras.main);
+
+      Phaser.Actions.Call(emojis.getChildren(), function (emoji) {
+        emoji.body.onWorldBounds = true;
+      });
+
+      this.physics.world.on('worldbounds', onWorldBounds);
+
+      this.physics.add.collider(avatarMain, emojis, collectStar, null, this);
       this.physics.add.collider(avatarMain, dude, dudeCollision, null, this);
 
       level.startLevel();
@@ -273,6 +303,7 @@ class App extends Component {
         dude.anims.play('left', true);
 
       }
+
     }
 
 
